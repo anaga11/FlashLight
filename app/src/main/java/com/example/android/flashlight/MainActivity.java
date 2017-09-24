@@ -1,22 +1,26 @@
 package com.example.android.flashlight;
 
-        import android.app.Activity;
-        import android.app.AlertDialog;
-        import android.content.DialogInterface;
-        import android.content.pm.PackageManager;
-        import android.hardware.Camera;
-        import android.hardware.Camera.Parameters;
-        import android.media.MediaPlayer;
-        import android.media.MediaPlayer.OnCompletionListener;
-        import android.os.Bundle;
-        import android.util.Log;
-        import android.view.View;
-        import android.widget.ImageButton;
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
+import android.media.MediaPlayer;
+import android.media.MediaPlayer.OnCompletionListener;
+import android.os.Build;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.Toast;
 
-        import com.tag.flash.R;
+import com.tag.flash.R;
 
 public class MainActivity extends Activity {
 
+    private static final int REQUEST_CAMERA = 1;
     private ImageButton btnSwitch;
 
     private Camera camera;
@@ -57,7 +61,7 @@ public class MainActivity extends Activity {
         }
 
         // get the camera
-        getCamera();
+            getCamera();
 
         // displaying button image
         toggleButtonImage();
@@ -80,16 +84,38 @@ public class MainActivity extends Activity {
         });
     }
 
+    public boolean isStoragePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED) {
+                //isUserApprovedPermission = true;
+                return true;
+            } else {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)){
+                    Toast.makeText(this, "Camera permission is needed to show the camera preview.", Toast.LENGTH_SHORT).show();
+                }
+                //isUserApprovedPermission = false;
+                requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA);
+                return false;
+            }
+        }
+        else { //permission is automatically granted on sdk<23 upon installation
+            //isUserApprovedPermission = true;
+            return true;
+        }
+    }
     /*
      * Get the camera
      */
     private void getCamera() {
-        if (camera == null) {
-            try {
-                camera = Camera.open();
-                params = camera.getParameters();
-            } catch (RuntimeException e) {
-                Log.e("Camera Error:", e.getMessage());
+        if (isStoragePermissionGranted()) {
+            if (camera == null) {
+                try {
+                    camera = Camera.open();
+                    params = camera.getParameters();
+                } catch (RuntimeException e) {
+                    Log.e("Camera Error:", e.getMessage());
+                }
             }
         }
     }
@@ -214,6 +240,21 @@ public class MainActivity extends Activity {
             camera.release();
             camera = null;
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+
+        if (requestCode == REQUEST_CAMERA){
+            if(grantResults[0]== PackageManager.PERMISSION_GRANTED){
+                getCamera();
+            } else {
+                Toast.makeText(this, "Permission not granted", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+
     }
 
 }
